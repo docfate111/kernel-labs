@@ -1,0 +1,2 @@
+0x00000000	my_debug_func	/home/thelshell/linux/tools/labs/skels/./kernel_modules/9-dyndbg/dyndbg	EXPORT_SYMBOL	
+0x00000000	kdb_write_address	/home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/hello_kdb	EXPORT_SYMBOL	

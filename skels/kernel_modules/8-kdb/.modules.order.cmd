@@ -1,0 +1,1 @@
+cmd_/home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/modules.order := {   echo /home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/hello_kdb.ko; :; } | awk '!x[$$0]++' - > /home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/modules.order

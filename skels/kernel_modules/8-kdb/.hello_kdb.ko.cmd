@@ -1,0 +1,1 @@
+cmd_/home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/hello_kdb.ko := ld -r -m elf_i386  --build-id=sha1  -T scripts/module.lds -o /home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/hello_kdb.ko /home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/hello_kdb.o /home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/hello_kdb.mod.o;  true

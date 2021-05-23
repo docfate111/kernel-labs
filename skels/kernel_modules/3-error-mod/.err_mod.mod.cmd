@@ -1,0 +1,1 @@
+cmd_/home/thelshell/linux/tools/labs/skels/./kernel_modules/3-error-mod/err_mod.mod := { echo  /home/thelshell/linux/tools/labs/skels/./kernel_modules/3-error-mod/err_mod.o;  echo; } > /home/thelshell/linux/tools/labs/skels/./kernel_modules/3-error-mod/err_mod.mod
