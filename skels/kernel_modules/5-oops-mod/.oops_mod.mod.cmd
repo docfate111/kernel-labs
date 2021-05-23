@@ -1,1 +1,0 @@
-cmd_/home/thelshell/linux/tools/labs/skels/./kernel_modules/5-oops-mod/oops_mod.mod := { echo  /home/thelshell/linux/tools/labs/skels/./kernel_modules/5-oops-mod/oops_mod.o;  echo; } > /home/thelshell/linux/tools/labs/skels/./kernel_modules/5-oops-mod/oops_mod.mod

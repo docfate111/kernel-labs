@@ -1,8 +1,0 @@
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/4-multi-mod/multi-mod.ko
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/3-error-mod/err_mod.ko
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/8-kdb/hello_kdb.ko
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/6-cmd-mod/cmd_mod.ko
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/1-2-test-mod/hello_mod.ko
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/7-list-proc/list_proc.ko
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/9-dyndbg/dyndbg.ko
-/home/thelshell/linux/tools/labs/skels/./kernel_modules/5-oops-mod/oops_mod.ko
