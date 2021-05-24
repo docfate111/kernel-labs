@@ -20,7 +20,7 @@ static int sched_spin_init(void)
 	/* TODO 0: Use spin_lock to aquire the lock */
 	printk("Locking...\n");
 	spin_lock(&lock);
-	set_current_state(TASK_INTERRUPTIBLE);
+	//set_current_state(TASK_INTERRUPTIBLE);
 	/* Try to sleep for 5 seconds. */
 	// not allowed to sleep in atomic context(between lock and unlock on a spinlock) 
 	// schedule_timeout(5 * HZ);
