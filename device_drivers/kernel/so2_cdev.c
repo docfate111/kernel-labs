@@ -40,7 +40,9 @@ struct so2_device_data {
 	atomic_t accessible;
 	/* TODO 4: add buffer with BUFSIZ elements */
 	char buffer[BUFSIZ];
-	/* TODO 7: extra members for home */
+	size_t size;
+	wait_queue_head_t q;
+	int flag;
 };
 
 struct so2_device_data devs[NUM_MINORS];
@@ -49,20 +51,20 @@ static int so2_cdev_open(struct inode *inode, struct file *file)
 {
 	struct so2_device_data *data;
 	/* TODO 2: print message when the device file is open. */
-	printk( LOG_LEVEL "Device file opened");
+	printk( LOG_LEVEL "Opening device file");
 	/* TODO 3: inode->i_cdev contains our cdev struct,
 	 use container_of to obtain a pointer to so2_device_data */
 	data = container_of(inode->i_cdev, struct so2_device_data, cdev);
 	file->private_data = data;
 	/* TODO 3: return immediately if access is != 0,
 	use atomic_cmpxchg */
-	if( atomic_cmpxchg(&(data->accessible), 0, 1) != 1 ){
-		printk( LOG_LEVEL "target was busy sorry");
+	if( atomic_cmpxchg(&(data->accessible), 0, 1) != 0 ){
+		printk( LOG_LEVEL "Device was busy sorry");
 		return -EBUSY;
 	} // device is busy
 	set_current_state(TASK_INTERRUPTIBLE);
 	schedule_timeout(10 * HZ);
-	printk( LOG_LEVEL "opened the device");
+	printk( LOG_LEVEL "Opened the device");
 	return 0;
 }
 
@@ -84,17 +86,24 @@ so2_cdev_read(struct file *file,
 {
 	struct so2_device_data *data =
 		(struct so2_device_data *) file->private_data;
-	size_t to_read = size - *offset;
-	if(to_read <= 0){ return 0; }
 #ifdef EXTRA
 	/* TODO 7: extra tasks for home */
+	if( !data->size ){
+		// give error if there is no buffer and device is opened without blocking
+		if (file->f_flags & NONBLOCK)
+			return -EAGAIN;
+		// wait until the buffer has a size that isn't zero
+		if (wait_event_interruptible(&data->q, data->size!=0))
+			return -ERESTARTSYS;
+	}
 #endif
 	/* TODO 4: Copy data->buffer to user_buffer */
-	if(size <= BUFSIZ){
-		printk( LOG_LEVEL "being read");
-		to_read = (size_t)copy_to_user(user_buffer,
-				data->buffer + *offset, to_read);
-		if(to_read){ return -EFAULT; }
+	size_t to_read = (size > data->size - *offset) ?
+			(data->size - *offset) : size;
+	printk( LOG_LEVEL "Userland buffer being read");
+	if((size_t)copy_to_user(user_buffer,
+				data->buffer + *offset, to_read)){
+		return -EFAULT;
 	}
 	*offset += to_read;
 	return to_read;
@@ -109,11 +118,18 @@ so2_cdev_write(struct file *file,
 		(struct so2_device_data *) file->private_data;
 	/* TODO 5: copy user_buffer to data->buffer,
 	use copy_from_user */
-	if(size <= BUFSIZ){
-		copy_from_user(data->buffer, user_buffer, size);
-	}
+	size_t to_write = (*offset + size > BUFSIZ) ?
+				(BUFSIZ - *offset) : size;
+	if( copy_from_user(data->buffer + *offset, user_buffer, to_write) )
+		return -EFAULT;
+	*offset += to_write;
+	data->size = *offset;
 	/* TODO 7: extra tasks for home */
-	return size;
+#ifdef EXTRA
+	// stop waiting processes
+	wake_up_interruptible(&data->q);
+#endif
+	return to_write;
 }
 
 static long
@@ -123,25 +139,28 @@ unsigned long arg)
 	struct so2_device_data *data =
 		(struct so2_device_data *) file->private_data;
 	int ret = 0;
+	int remains;
 	switch (cmd) {
 		/* TODO 6: display IOCTL_MESSAGE */
 		case MY_IOCTL_PRINT:
 			printk( LOG_LEVEL "Ioctl message is %s", IOCTL_MESSAGE);
-		/* TODO 7: extra tasks, for home */
 			break;
 		case MY_IOCTL_SET_BUFFER:
-			if( copy_from_user(data->buffer, (struct so2_device_data *)arg, BUFSIZ) )
-            			return -EFAULT;
+			remains = copy_from_user(data->buffer, (char *)arg, BUFSIZ);
+            		if( remains ) ret = -EFAULT;
+			data->size = BUFFER_SIZE - remains;
 			break;
 		case MY_IOCTL_GET_BUFFER:
-			if( copy_to_user((struct so2_device_data *)arg, data->buffer, BUFSIZ) )
-				return -EFAULT;
+			if( copy_to_user((char*)arg, data->buffer, data->size))
+				ret = -EFAULT;
 			break;
 		case MY_IOCTL_DOWN:
-			
+			data->flag = 0;
+			wait_event_interruptible(&data->q, data->flag!=0);
 			break;
 		case MY_IOCTL_UP:
-			
+			data->flag = 1;
+			wake_up_interruptible(&data->q);
 			break;
 		default:
 			ret = -EINVAL;
@@ -172,9 +191,17 @@ static int so2_cdev_init(void)
 	register_chrdev_region(MKDEV(MY_MAJOR, MY_MINOR), NUM_MINORS, MODULE_NAME);
 	for (i = 0; i < NUM_MINORS; i++) {
 		/* TODO 7: extra tasks, for home */
+#ifdef EXTRA
+		devs[i].size = 0;
+		memset(devs[i].buffer,0,sizeof(devs[i].buffer));
+#else
 		/*TODO 4: initialize buffer with MESSAGE string */
-		strncpy(devs[i].buffer, MESSAGE, BUFSIZ);
+		memcpy(devs[i].buffer, MESSAGE, sizeof(MESSAGE));
+		devs[i].size = sizeof(MESSAGE);
+#endif
 		/* TODO 7: extra tasks for home */
+		init_waitqueue_head(&devs[i].q);
+		devs[i].flag = 0;
 		/* TODO 3: set access variable to 0, use atomic_set */
 		atomic_set(&devs[i].accessible, 0);
 		/* TODO 2: init and add cdev to kernel core */
