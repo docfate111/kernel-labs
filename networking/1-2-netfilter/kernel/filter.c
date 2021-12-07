@@ -46,22 +46,28 @@ static int test_daddr(unsigned int dst_addr)
 {
 	int ret = 0;
 
-	/* TODO 2: return non-zero if address has been set
+	/*  return non-zero if address has been set
 	 * *and* matches dst_addr
 	 */
+	if(atomic_read(&ioctl_set) == 1){
+		ret = (dst_addr == ioctl_set_addr);
+	}
 
 	return ret;
 }
 
-/* TODO 1: netfilter hook function */
+/*  netfilter hook function */
 static unsigned int my_nf_hookfn(void *priv,
               struct sk_buff *skb,
               const struct nf_hook_state *state)
 {
 	struct iphdr *iph = ip_hdr(skb);
 	struct tcphdr *tcph = tcp_hdr(skb);
-	int n = ntohs(tcph->source);
-	pr_info("TCP connection initiated from %pI4:%d\n", &iph->saddr, n);
+	if(iph->protocol == IPPROTO_TCP && test_daddr(iph->daddr)) {
+		unsigned int n = ntohs(tcph->source);
+		if(tcph->syn && !tcph->ack){
+			pr_info("TCP connection initiated from %pI4:%d\n", &iph->saddr, n);
+		}
 	return NF_ACCEPT;
 }
 
@@ -81,7 +87,12 @@ static long my_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case MY_IOCTL_FILTER_ADDRESS:
-		/* TODO 2: set filter address from arg */
+		/*  set filter address from arg */
+		if(copy_from_user(&ioctl_set_addr, (void*)arg,
+			sizeof(ioctl_set_addr))!=0){
+			return -EFAULT;
+		}
+		atomic_set(&ioctl_set, 1);
 		break;
 
 	default:
@@ -98,7 +109,7 @@ static const struct file_operations my_fops = {
 	.unlocked_ioctl = my_ioctl
 };
 
-/* TODO 1: define netfilter hook operations structure */
+/*  define netfilter hook operations structure */
 static struct nf_hook_ops my_nfho = {
       .hook        = my_nf_hookfn,
       .hooknum     = NF_INET_LOCAL_OUT,
@@ -122,7 +133,7 @@ int __init my_hook_init(void)
 	cdev_init(&my_cdev, &my_fops);
 	cdev_add(&my_cdev, MKDEV(MY_MAJOR, 0), 1);
 
-	/* TODO 1: register netfilter hook */
+	/*  register netfilter hook */
 	nf_register_net_hook(&init_net, &my_nfho);
 	return 0;
 
@@ -136,7 +147,7 @@ out:
 
 void __exit my_hook_exit(void)
 {
-	/* TODO 1: unregister hook */
+	/*  unregister hook */
 	nf_unregister_net_hook(&init_net, &my_nfho);
 	/* cleanup device */
 	cdev_del(&my_cdev);
